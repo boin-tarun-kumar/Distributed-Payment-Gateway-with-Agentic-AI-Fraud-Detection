@@ -1,0 +1,35 @@
+package com.paymentgateway.acquirer;
+
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import java.time.Duration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class AcquirerResilienceConfiguration {
+    @Bean
+    CircuitBreaker acquirerCircuitBreaker() {
+        return CircuitBreaker.of(
+                "acquirerBank",
+                CircuitBreakerConfig.custom()
+                        .slidingWindowSize(20)
+                        .minimumNumberOfCalls(5)
+                        .failureRateThreshold(50)
+                        .waitDurationInOpenState(Duration.ofSeconds(10))
+                        .build());
+    }
+
+    @Bean
+    Retry acquirerRetry() {
+        return Retry.of(
+                "acquirerBank",
+                RetryConfig.custom()
+                        .maxAttempts(3)
+                        .waitDuration(Duration.ofMillis(100))
+                        .retryExceptions(BankUnavailableException.class)
+                        .build());
+    }
+}
